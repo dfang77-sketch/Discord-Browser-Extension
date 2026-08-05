@@ -50,15 +50,28 @@
 
 
   let _discordPresenceStore = null;
+  let _presenceStoreSearched = false;
 
   function getDiscordPresenceStore() {
     if (_discordPresenceStore) return _discordPresenceStore;
-    _discordPresenceStore = findModule(
-      m => typeof m.getStatus === 'function' &&
-           typeof m.getUserActivities === 'function' &&
-           typeof m.isMobileOnline === 'function'
-    );
+    if (_presenceStoreSearched) return null;
+    _presenceStoreSearched = true;
+    _discordPresenceStore =
+      findModule(m => typeof m.getStatus === 'function' && typeof m.getUserActivities === 'function' && typeof m.isMobileOnline === 'function') ||
+      findModule(m => typeof m.getStatus === 'function' && typeof m.getUserActivities === 'function') ||
+      findModule(m => typeof m.getStatus === 'function' && typeof m.getActivities === 'function');
     return _discordPresenceStore;
+  }
+
+  function resolveStatusValue(raw) {
+    if (!raw) return null;
+    if (typeof raw === 'string') return raw;
+    if (typeof raw === 'object') {
+      for (const key of ['status', 'desktop', 'web', 'mobile']) {
+        if (typeof raw[key] === 'string' && raw[key]) return raw[key];
+      }
+    }
+    return null;
   }
 
   function getStatusForUser(userId) {
@@ -66,14 +79,7 @@
     if (local) return local;
     try {
       const store = getDiscordPresenceStore();
-      if (store) {
-        const raw = store.getStatus(userId);
-        if (typeof raw === 'string' && raw) return raw;
-        if (raw && typeof raw === 'object') {
-          const s = raw.status;
-          if (typeof s === 'string' && s) return s;
-        }
-      }
+      if (store) return resolveStatusValue(store.getStatus(userId));
     } catch (_) {}
     return null;
   }
