@@ -7,16 +7,11 @@
   "content_scripts": [
     {
       "matches": ["https://discord.com/*"],
-      "js": ["content.js"],
+      "js": ["injected.js"],
       "css": ["styles.css"],
       "run_at": "document_start",
+      "world": "MAIN",
       "all_frames": false
-    }
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": ["injected.js"],
-      "matches": ["https://discord.com/*"]
     }
   ],
   "background": {
