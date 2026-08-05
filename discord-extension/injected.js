@@ -1,6 +1,3 @@
-// DISCLAIMER: Use at your own risk. This script is provided as it is without warranty.
-// I do not claim responsibility for any misuse or unintended consequences.
-
 (function () {
   'use strict';
 
@@ -47,6 +44,32 @@
     } catch (_) {}
     try {
       return JSON.parse(localStorage.getItem('token'));
+    } catch (_) {}
+    return null;
+  }
+
+
+  let _discordPresenceStore = null;
+
+  function getDiscordPresenceStore() {
+    if (_discordPresenceStore) return _discordPresenceStore;
+    _discordPresenceStore = findModule(
+      m => typeof m.getStatus === 'function' &&
+           typeof m.getUserActivities === 'function' &&
+           typeof m.isMobileOnline === 'function'
+    );
+    return _discordPresenceStore;
+  }
+
+  function getStatusForUser(userId) {
+    const local = presenceStore.get(userId);
+    if (local) return local;
+    try {
+      const store = getDiscordPresenceStore();
+      if (store) {
+        const status = store.getStatus(userId);
+        if (status) return status;
+      }
     } catch (_) {}
     return null;
   }
@@ -157,6 +180,19 @@
 
   function handleReady(data) {
     (data.presences || []).forEach(updatePresence);
+
+    const ownId = data.user?.id;
+    if (ownId && data.sessions?.length) {
+      const priority = { online: 4, streaming: 3, idle: 2, dnd: 1, offline: 0 };
+      let best = 'offline';
+      for (const s of data.sessions) {
+        const st = s.status || 'offline';
+        if ((priority[st] ?? 0) > (priority[best] ?? 0)) best = st;
+      }
+      presenceStore.set(ownId, best);
+      LOG('Own presence seeded:', best);
+    }
+
     LOG('Ready — seeded', data.presences?.length ?? 0, 'presences.');
   }
 
@@ -195,7 +231,6 @@
 
     LOG('Message deleted:', id, '| author:', cached.author?.username);
 
-   
     showDeletedToast(cached);
 
     if (guild_id) {
@@ -294,12 +329,18 @@
     return Number(BigInt(snowflake) >> 22n) + 1420070400000;
   }
 
+  function findMessageElement(messageId) {
+    return (
+      document.querySelector(`[id*="${messageId}"]`) ||
+      document.querySelector(`[data-list-item-id*="${messageId}"]`)
+    );
+  }
+
 
   let activePopup = null;
 
   function startContextMenuListener() {
     document.addEventListener('contextmenu', (event) => {
-      
       let el = event.target;
       let messageId = null;
 
@@ -411,50 +452,6 @@
   }
 
 
-  function getUserIdFromMessageEl(el) {
-    const authorEl = el.querySelector('[class*="username"]');
-    if (!authorEl) return null;
-
-    if (el.dataset?.authorId) return el.dataset.authorId;
-
-    const li = el.closest('li');
-    if (li?.dataset?.authorId) return li.dataset.authorId;
-
-    return null;
-  }
-
-  function injectStatusDot(messageEl, userId) {
-    if (messageEl.querySelector('.de-status-dot')) return;
-
-    const status = presenceStore.get(userId) || 'offline';
-    const usernameEl = messageEl.querySelector('[class*="username_"]') ||
-                       messageEl.querySelector('[class*="headerText"]');
-
-    if (!usernameEl) return;
-
-    const dot = document.createElement('span');
-    dot.className = 'de-status-dot';
-    dot.dataset.status = status;
-    dot.dataset.statusLabel = STATUS_LABELS[status] || status;
-    dot.title = STATUS_LABELS[status] || status;
-    dot.setAttribute('data-de-user', userId);
-
-    usernameEl.insertAdjacentElement('afterend', dot);
-  }
-
-  function refreshStatusDotsForUser(userId) {
-    const status = presenceStore.get(userId) || 'offline';
-    document.querySelectorAll(`.de-status-dot[data-de-user="${userId}"]`).forEach(dot => {
-      dot.dataset.status = status;
-      dot.dataset.statusLabel = STATUS_LABELS[status] || status;
-      dot.title = STATUS_LABELS[status] || status;
-    });
-  }
-
-
-  let domObserver = null;
-
-  
   function getUserIdFromAvatar(el) {
     const img =
       el.querySelector('img[src*="cdn.discordapp.com/avatars/"]') ||
@@ -465,7 +462,6 @@
   }
 
   function processMessageElement(el) {
-   
     const authorId =
       el.dataset?.authorId ||
       el.closest('li')?.dataset?.authorId ||
@@ -476,14 +472,12 @@
       return;
     }
 
-
     const avatarUserId = getUserIdFromAvatar(el);
     if (avatarUserId) {
       injectStatusDot(el, avatarUserId);
       return;
     }
 
-  
     const li = el.closest('li') || el;
     const rawId = li.id || li.dataset?.listItemId;
     if (rawId) {
@@ -495,7 +489,6 @@
       }
     }
 
- 
     inferUserIdAndInject(el);
   }
 
@@ -512,6 +505,40 @@
       }
     }
   }
+
+  function injectStatusDot(messageEl, userId) {
+    if (messageEl.querySelector('.de-status-dot')) return;
+
+    const status = getStatusForUser(userId);
+    if (!status) return;
+
+    const usernameEl = messageEl.querySelector('[class*="username_"]') ||
+                       messageEl.querySelector('[class*="headerText"]');
+
+    if (!usernameEl) return;
+
+    const dot = document.createElement('span');
+    dot.className = 'de-status-dot';
+    dot.dataset.status = status;
+    dot.dataset.statusLabel = STATUS_LABELS[status] || status;
+    dot.title = STATUS_LABELS[status] || status;
+    dot.setAttribute('data-de-user', userId);
+
+    usernameEl.insertAdjacentElement('afterend', dot);
+  }
+
+  function refreshStatusDotsForUser(userId) {
+    const status = getStatusForUser(userId);
+    if (!status) return;
+    document.querySelectorAll(`.de-status-dot[data-de-user="${userId}"]`).forEach(dot => {
+      dot.dataset.status = status;
+      dot.dataset.statusLabel = STATUS_LABELS[status] || status;
+      dot.title = STATUS_LABELS[status] || status;
+    });
+  }
+
+
+  let domObserver = null;
 
   function startDOMObserver() {
     if (domObserver) domObserver.disconnect();
