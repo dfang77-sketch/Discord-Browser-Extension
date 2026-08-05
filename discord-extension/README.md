@@ -3,6 +3,7 @@ This is a browser extension which works on Chrome, Edge, Brave, Opera, Vivaldi, 
 It enhances the discord experience by providing an improved interface, be it seeing deleted messages highlighted red, original edited messages, convenient status check, and more.
 ## Installation processes vary for every browser extension, so please read the instructions below for the installation guide.
 Instructions are below.
+
 *DISCLAIMER: I do not claim any responsibility for actions related to this extension. This browser extension is an independent and unofficial project. Additionally, it is not endorsed by Discord,inc. USE AT YOUR OWN RISK.*
 # Installation Instructions:
 **Chrome, Microsoft Edge, Brave, Opera, Vivaldi:**
