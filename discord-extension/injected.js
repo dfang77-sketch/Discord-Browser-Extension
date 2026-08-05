@@ -479,8 +479,18 @@
 
   let domObserver = null;
 
+  
+  function getUserIdFromAvatar(el) {
+    const img =
+      el.querySelector('img[src*="cdn.discordapp.com/avatars/"]') ||
+      el.closest('li')?.querySelector('img[src*="cdn.discordapp.com/avatars/"]');
+    if (!img) return null;
+    const match = img.src.match(/\/avatars\/(\d+)\//);
+    return match ? match[1] : null;
+  }
+
   function processMessageElement(el) {
-    // 1. Try data-author-id on the element or its parent <li>
+   
     const authorId =
       el.dataset?.authorId ||
       el.closest('li')?.dataset?.authorId ||
@@ -491,15 +501,17 @@
       return;
     }
 
-    // 2. Try extracting the message ID from the element or parent <li>
-    //    Discord IDs look like: chat-messages-CHANNELID-MESSAGEID
-    const rawId =
-      el.id ||
-      el.closest('li')?.dataset?.listItemId ||
-      el.closest('[data-list-item-id]')?.dataset?.listItemId;
 
+    const avatarUserId = getUserIdFromAvatar(el);
+    if (avatarUserId) {
+      injectStatusDot(el, avatarUserId);
+      return;
+    }
+
+  
+    const li = el.closest('li') || el;
+    const rawId = li.id || li.dataset?.listItemId;
     if (rawId) {
-      // The message snowflake is the last segment after the final '-'
       const parts = rawId.split('-');
       const msgId = parts[parts.length - 1];
       if (msgId && messageCache.has(msgId)) {
@@ -508,7 +520,7 @@
       }
     }
 
-    // 3. Last resort: match by visible username text
+ 
     inferUserIdAndInject(el);
   }
 
