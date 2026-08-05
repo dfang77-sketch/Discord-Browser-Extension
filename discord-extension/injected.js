@@ -480,6 +480,7 @@
   let domObserver = null;
 
   function processMessageElement(el) {
+    // 1. Try data-author-id on the element or its parent <li>
     const authorId =
       el.dataset?.authorId ||
       el.closest('li')?.dataset?.authorId ||
@@ -487,9 +488,28 @@
 
     if (authorId) {
       injectStatusDot(el, authorId);
-    } else {
-      inferUserIdAndInject(el);
+      return;
     }
+
+    // 2. Try extracting the message ID from the element or parent <li>
+    //    Discord IDs look like: chat-messages-CHANNELID-MESSAGEID
+    const rawId =
+      el.id ||
+      el.closest('li')?.dataset?.listItemId ||
+      el.closest('[data-list-item-id]')?.dataset?.listItemId;
+
+    if (rawId) {
+      // The message snowflake is the last segment after the final '-'
+      const parts = rawId.split('-');
+      const msgId = parts[parts.length - 1];
+      if (msgId && messageCache.has(msgId)) {
+        injectStatusDot(el, messageCache.get(msgId).author.id);
+        return;
+      }
+    }
+
+    // 3. Last resort: match by visible username text
+    inferUserIdAndInject(el);
   }
 
   function inferUserIdAndInject(msgEl) {
