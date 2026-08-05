@@ -67,8 +67,12 @@
     try {
       const store = getDiscordPresenceStore();
       if (store) {
-        const status = store.getStatus(userId);
-        if (status) return status;
+        const raw = store.getStatus(userId);
+        if (typeof raw === 'string' && raw) return raw;
+        if (raw && typeof raw === 'object') {
+          const s = raw.status;
+          if (typeof s === 'string' && s) return s;
+        }
       }
     } catch (_) {}
     return null;
