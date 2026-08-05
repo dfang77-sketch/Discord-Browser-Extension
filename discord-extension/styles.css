@@ -1,0 +1,212 @@
+.de-deleted-message {
+  background-color: rgba(220, 53, 69, 0.15) !important;
+  border-left: 3px solid #dc3545 !important;
+  padding-left: 8px !important;
+  opacity: 0.85;
+  position: relative;
+}
+
+.de-deleted-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #dc3545;
+  background: rgba(220, 53, 69, 0.15);
+  border: 1px solid rgba(220, 53, 69, 0.4);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-left: 6px;
+  vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  user-select: none;
+}
+
+.de-deleted-by {
+  font-size: 11px;
+  color: #f08080;
+  margin-top: 2px;
+  font-style: italic;
+}
+
+/* ── Edited message context menu item ── */
+.de-context-separator {
+  height: 1px;
+  background: rgba(255,255,255,0.08);
+  margin: 4px 8px;
+}
+
+.de-context-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  color: #dbdee1;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 4px;
+  margin: 2px 4px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s;
+}
+
+.de-context-item:hover {
+  background: #5865f2;
+  color: #fff;
+}
+
+.de-context-icon {
+  font-size: 16px;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* ── Original message popup ── */
+.de-popup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  animation: de-fade-in 0.12s ease;
+}
+
+@keyframes de-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.de-popup {
+  background: #2b2d31;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 20px;
+  min-width: 380px;
+  max-width: 560px;
+  width: 90vw;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  animation: de-slide-up 0.15s ease;
+}
+
+@keyframes de-slide-up {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+
+.de-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.de-popup-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #f2f3f5;
+}
+
+.de-popup-close {
+  background: none;
+  border: none;
+  color: #80848e;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.1s, background 0.1s;
+}
+
+.de-popup-close:hover {
+  color: #f2f3f5;
+  background: rgba(255,255,255,0.08);
+}
+
+.de-popup-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #80848e;
+  margin-bottom: 6px;
+}
+
+.de-popup-content {
+  background: #1e1f22;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 14px;
+  line-height: 1.6;
+  word-break: break-word;
+  white-space: pre-wrap;
+  border-left: 3px solid transparent;
+}
+
+.de-popup-original {
+  border-left-color: #f0b232;
+  color: #dbdee1;
+}
+
+.de-popup-current {
+  border-left-color: #23a55a;
+  color: #dbdee1;
+}
+
+.de-popup-footer {
+  margin-top: 14px;
+  font-size: 11px;
+  color: #4e5058;
+  text-align: center;
+}
+
+/* ── User status dot ── */
+.de-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: 5px;
+  margin-right: 2px;
+  vertical-align: middle;
+  flex-shrink: 0;
+  position: relative;
+  top: -1px;
+}
+
+.de-status-dot[data-status="online"]  { background-color: #23a55a; }
+.de-status-dot[data-status="idle"]    { background-color: #f0b232; }
+.de-status-dot[data-status="dnd"]     { background-color: #f23f42; }
+.de-status-dot[data-status="offline"] { background-color: #80848e; }
+.de-status-dot[data-status="streaming"] { background-color: #593695; }
+
+/* Tooltip on hover */
+.de-status-dot::after {
+  content: attr(data-status-label);
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #111214;
+  color: #e0e1e5;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  z-index: 9999;
+}
+
+.de-status-dot:hover::after {
+  opacity: 1;
+}
