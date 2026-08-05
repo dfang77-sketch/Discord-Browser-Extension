@@ -31,7 +31,6 @@
   font-style: italic;
 }
 
-/* ── Edited message context menu item ── */
 .de-context-separator {
   height: 1px;
   background: rgba(255,255,255,0.08);
@@ -65,7 +64,7 @@
   flex-shrink: 0;
 }
 
-/* ── Original message popup ── */
+
 .de-popup-overlay {
   position: fixed;
   inset: 0;
@@ -167,7 +166,105 @@
   text-align: center;
 }
 
-/* ── User status dot ── */
+
+#de-toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  max-width: 380px;
+  width: calc(100vw - 48px);
+}
+
+.de-toast {
+  background: #2b2d31;
+  border: 1px solid rgba(220, 53, 69, 0.4);
+  border-left: 3px solid #dc3545;
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  pointer-events: all;
+  animation: de-toast-in 0.2s ease;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.de-toast.de-toast-fade {
+  opacity: 0;
+  transform: translateX(16px);
+}
+
+@keyframes de-toast-in {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.de-toast-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.de-toast-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #dc3545;
+  background: rgba(220, 53, 69, 0.15);
+  border: 1px solid rgba(220, 53, 69, 0.35);
+  border-radius: 3px;
+  padding: 1px 5px;
+  flex-shrink: 0;
+}
+
+.de-toast-author {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f2f3f5;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.de-toast-close {
+  background: none;
+  border: none;
+  color: #80848e;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.1s;
+}
+
+.de-toast-close:hover { color: #f2f3f5; }
+
+.de-toast-content {
+  font-size: 13px;
+  color: #dbdee1;
+  line-height: 1.4;
+  word-break: break-word;
+  white-space: pre-wrap;
+  max-height: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.de-toast-by {
+  font-size: 11px;
+  color: #f08080;
+  font-style: italic;
+  margin-top: 3px;
+}
+
+
 .de-status-dot {
   display: inline-block;
   width: 8px;
@@ -187,7 +284,7 @@
 .de-status-dot[data-status="offline"] { background-color: #80848e; }
 .de-status-dot[data-status="streaming"] { background-color: #593695; }
 
-/* Tooltip on hover */
+
 .de-status-dot::after {
   content: attr(data-status-label);
   position: absolute;
