@@ -195,99 +195,63 @@
 
     LOG('Message deleted:', id, '| author:', cached.author?.username);
 
-    let msgEl = findMessageElement(id);
-
-    if (msgEl) {
-      applyDeletedStyling(msgEl, cached, null);
-    }
-
-    scheduleReinsert(id, channel_id, cached);
+   
+    showDeletedToast(cached);
 
     if (guild_id) {
       try {
         const deleter = await fetchAuditLogDeleter(guild_id, channel_id, id);
-        if (deleter) {
-          const el = document.querySelector(`[data-de-message-id="${id}"]`);
-          if (el) appendDeletedBy(el, deleter);
-        }
+        if (deleter) updateDeletedToast(id, deleter);
       } catch (_) {}
     }
   }
 
-  function findMessageElement(messageId) {
-    return (
-      document.querySelector(`[id*="${messageId}"]`) ||
-      document.querySelector(`[data-list-item-id*="${messageId}"]`)
-    );
-  }
-
-  function applyDeletedStyling(el, cached, deleter) {
-    if (el.classList.contains('de-deleted-message')) return;
-    el.classList.add('de-deleted-message');
-    el.setAttribute('data-de-message-id', cached.id);
-    el.setAttribute('data-de-deleted', 'true');
-
-    const header = el.querySelector('[class*="username"]') ||
-                   el.querySelector('[class*="header"]') ||
-                   el.querySelector('h3');
-
-    if (header) {
-      const badge = document.createElement('span');
-      badge.className = 'de-deleted-badge';
-      badge.textContent = 'Deleted';
-      header.appendChild(badge);
+  function showDeletedToast(cached) {
+    let container = document.getElementById('de-toast-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'de-toast-container';
+      document.body.appendChild(container);
     }
 
-    if (deleter) {
-      appendDeletedBy(el, deleter);
-    }
-  }
+    const author = cached.author?.global_name || cached.author?.username || 'Unknown';
+    const content = cached.content || '(no text content)';
+    const extra = cached.attachments?.length
+      ? ` [+${cached.attachments.length} attachment(s)]` : '';
 
-  function appendDeletedBy(el, deleter) {
-    if (el.querySelector('.de-deleted-by')) return;
-    const byEl = document.createElement('div');
-    byEl.className = 'de-deleted-by';
-    byEl.textContent = `Deleted by ${deleter.username}${deleter.discriminator ? '#' + deleter.discriminator : ''}`;
-    el.appendChild(byEl);
-  }
+    const toast = document.createElement('div');
+    toast.className = 'de-toast';
+    toast.dataset.deToastId = cached.id;
+    toast.innerHTML = `
+      <div class="de-toast-header">
+        <span class="de-toast-badge">Deleted</span>
+        <span class="de-toast-author">${escapeHTML(author)}</span>
+        <button class="de-toast-close" title="Dismiss">✕</button>
+      </div>
+      <div class="de-toast-content">${escapeHTML(content + extra)}</div>
+      <div class="de-toast-by"></div>
+    `;
 
-  function scheduleReinsert(messageId, channelId, cached) {
-    const observer = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        for (const removed of mutation.removedNodes) {
-          if (!(removed instanceof HTMLElement)) continue;
-
-          const isTarget =
-            removed.id?.includes(messageId) ||
-            removed.dataset?.listItemId?.includes(messageId) ||
-            removed.querySelector?.(`[id*="${messageId}"]`);
-
-          if (isTarget) {
-            const targetEl = removed.id?.includes(messageId)
-              ? removed
-              : removed.querySelector(`[id*="${messageId}"]`);
-
-            const elToReinsert = targetEl || removed;
-            applyDeletedStyling(elToReinsert, cached, null);
-
-            mutation.target.appendChild(elToReinsert);
-
-            observer.disconnect();
-            LOG('Re-inserted deleted message:', messageId);
-            return;
-          }
-        }
-      }
+    toast.querySelector('.de-toast-close').addEventListener('click', () => {
+      toast.classList.add('de-toast-fade');
+      setTimeout(() => toast.remove(), 350);
     });
 
-    const list = document.querySelector('[class*="scrollerInner"]') ||
-                 document.querySelector('ol[class*="scrollerInner"]');
+    container.appendChild(toast);
 
-    if (list) {
-      observer.observe(list, { childList: true, subtree: true });
+    setTimeout(() => {
+      toast.classList.add('de-toast-fade');
+      setTimeout(() => toast.remove(), 350);
+    }, 12000);
+  }
+
+  function updateDeletedToast(messageId, deleter) {
+    const toast = document.querySelector(`[data-de-toast-id="${messageId}"]`);
+    if (!toast) return;
+    const byEl = toast.querySelector('.de-toast-by');
+    if (byEl) {
+      byEl.textContent = `Deleted by ${deleter.username}${deleter.discriminator ? '#' + deleter.discriminator : ''}`;
     }
-
-    setTimeout(() => observer.disconnect(), 10_000);
   }
 
 
@@ -335,34 +299,45 @@
 
   function startContextMenuListener() {
     document.addEventListener('contextmenu', (event) => {
-      const msgEl = event.target.closest('[data-de-edited="true"]') ||
-                    event.target.closest('[class*="message_"][data-de-edited]');
+      
+      let el = event.target;
+      let messageId = null;
 
-      if (!msgEl) return;
+      while (el && el !== document.body) {
+        if (el.id?.startsWith('chat-messages-')) {
+          const parts = el.id.split('-');
+          messageId = parts[parts.length - 1];
+          break;
+        }
+        if (el.dataset?.listItemId?.startsWith('chat-messages-')) {
+          const parts = el.dataset.listItemId.split('-');
+          messageId = parts[parts.length - 1];
+          break;
+        }
+        el = el.parentElement;
+      }
 
-      const messageId = msgEl.dataset.deMessageId || msgEl.dataset.deEdited;
       if (!messageId || !editedMessages.has(messageId)) return;
 
-      waitForContextMenu(event.clientX, event.clientY, messageId);
+      waitForContextMenu(messageId);
     }, true);
 
     document.addEventListener('click', dismissPopup);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') dismissPopup(); });
   }
 
-  function waitForContextMenu(x, y, messageId) {
+  function waitForContextMenu(messageId) {
     let attempts = 0;
     const poll = setInterval(() => {
       attempts++;
-      const menu = document.querySelector('[class*="menu_"][role="menu"]') ||
-                   document.querySelector('[class*="contextMenu"]');
+      const menu = document.querySelector('[role="menu"]');
 
       if (menu && !menu.querySelector('.de-context-item')) {
         injectContextMenuItem(menu, messageId);
         clearInterval(poll);
       }
 
-      if (attempts > 20) clearInterval(poll);
+      if (attempts > 30) clearInterval(poll);
     }, 50);
   }
 
